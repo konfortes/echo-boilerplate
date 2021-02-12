@@ -5,6 +5,8 @@ import (
 	"os"
 
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo-contrib/jaegertracing"
+	"github.com/labstack/echo-contrib/prometheus"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 )
@@ -13,14 +15,17 @@ type serverConfig struct {
 	port     string
 	env      string
 	logLevel string
+	appName  string
 	admin    struct {
 		user     string
 		password string
 	}
+	tracingEnabled string
 }
 
 var (
-	config serverConfig
+	config        serverConfig
+	shutdownHooks []func()
 )
 
 func getEnvOr(name string, defaultValue string) string {
@@ -36,11 +41,14 @@ func getEnvOr(name string, defaultValue string) string {
 func init() {
 	_ = godotenv.Load()
 
+	// TODO: use Viper
 	config.port = getEnvOr("PORT", "3000")
 	config.env = getEnvOr("GO_ENV", "development")
+	config.appName = getEnvOr("APP_NAME", "my-app")
 	config.logLevel = getEnvOr("LOG_LEVEL", "info")
 	config.admin.user = getEnvOr("ADMIN_USER", "")
 	config.admin.password = getEnvOr("ADMIN_PASSWORD", "")
+	config.tracingEnabled = getEnvOr("TRACING_ENABLED", "false")
 }
 
 func generateSkipper(skipForPaths []string) func(echo.Context) bool {
@@ -55,7 +63,6 @@ func generateSkipper(skipForPaths []string) func(echo.Context) bool {
 }
 
 func setMiddlewares(e *echo.Echo) {
-	// TODO: jaeger and prometheus
 	e.Use(middleware.Recover())
 	e.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
 		Skipper: generateSkipper([]string{"/health"}),
@@ -63,6 +70,20 @@ func setMiddlewares(e *echo.Echo) {
 	e.Use(middleware.RequestIDWithConfig(middleware.RequestIDConfig{
 		Skipper: generateSkipper([]string{"/health"}),
 	}))
+
+	p := prometheus.NewPrometheus(config.appName, nil)
+	p.Use(e)
+
+	if config.tracingEnabled == "true" {
+		// Use JAEGER_AGENT_HOST and JAEGER_AGENT_PORT to configure agent (or collector)
+		c := jaegertracing.New(e, nil)
+		e.Server.RegisterOnShutdown(func() {
+			if err := c.Close; err != nil {
+				e.Logger.Error(err)
+			}
+		})
+
+	}
 }
 
 func newEcho() *echo.Echo {
