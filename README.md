@@ -6,7 +6,7 @@ A Go [Echo](https://github.com/labstack/echo) boilerplate
 
 ### dotenv
 
-echo-boilerplate is uses dotenv for development environment. set environment variables in `.env` file
+echo-boilerplate uses dotenv for development environment. set environment variables in `.env` file
 
 ## Prometheus
 

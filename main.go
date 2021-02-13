@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
+	"os/signal"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo-contrib/jaegertracing"
@@ -126,5 +129,25 @@ func main() {
 
 	setAdminRoutes(e)
 
-	e.Logger.Fatal(e.Start(":" + config.port))
+	listenAddress := ":" + config.port
+
+	go func() {
+		if err := e.Start(listenAddress); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal(err)
+		}
+	}()
+
+	// using grace or graceful libraries does not invoke Echo#Start, therefore skips Echo#ConfigureServer
+	gracefulShutdown(e, 5*time.Second)
+}
+
+func gracefulShutdown(e *echo.Echo, graceDuration time.Duration) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	ctx, cancel := context.WithTimeout(context.Background(), graceDuration)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
 }
