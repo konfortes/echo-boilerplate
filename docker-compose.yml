@@ -5,7 +5,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      APP_NAME: echo-boilerplate
+      APP_NAME: echo_boilerplate
       PORT: 3000
       JAEGER_SERVICE_NAME: echo-boilerplate
       JAEGER_AGENT_HOST: jaeger

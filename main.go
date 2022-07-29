@@ -47,7 +47,7 @@ func init() {
 	// TODO: use Viper
 	config.port = getEnvOr("PORT", "3000")
 	config.env = getEnvOr("GO_ENV", "development")
-	config.appName = getEnvOr("APP_NAME", "my-app")
+	config.appName = getEnvOr("APP_NAME", "my_app")
 	config.logLevel = getEnvOr("LOG_LEVEL", "info")
 	config.admin.user = getEnvOr("ADMIN_USER", "")
 	config.admin.password = getEnvOr("ADMIN_PASSWORD", "")

@@ -1,10 +1,24 @@
-FROM golang:1.13.9-alpine3.11
+FROM golang:1.16-buster AS build
 
 WORKDIR /app
 
-COPY . .
+COPY go.mod ./
+COPY go.sum ./
+RUN go mod download
 
-RUN export GO111MODULE=on
-RUN go build -o main .
+COPY *.go ./
 
-CMD ["/app/main"]
+RUN go build -o /echo-boilerplate
+
+
+FROM gcr.io/distroless/base-debian10
+
+WORKDIR /
+
+COPY --from=build /echo-boilerplate /echo-boilerplate
+
+EXPOSE 8080
+
+USER nonroot:nonroot
+
+ENTRYPOINT ["/echo-boilerplate"]
